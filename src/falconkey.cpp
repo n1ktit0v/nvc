@@ -56,7 +56,7 @@ bool CFalconKey::Sign(const uint256& hash, std::vector<unsigned char>& vchSigOut
 
     size_t nSigLen = SIGNATURE_SIZE;
     vchSigOut.resize(nSigLen);
-    OQS_STATUS st = OQS_SIG_falcon_512_sign(hash.begin(), 32, &vchSigOut[0], &nSigLen);
+    OQS_STATUS st = OQS_SIG_falcon_512_sign(&vchSigOut[0], &nSigLen, hash.begin(), 32, &vchPrivKey[0]);
     OQS_SIG_free(sig);
 
     if (st != OQS_SUCCESS)

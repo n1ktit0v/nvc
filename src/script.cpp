@@ -1650,7 +1650,7 @@ bool Solver(const CKeyStore& keystore, const CScript& scriptPubKey, const uint25
         return (SignN(vSolutions, keystore, hash, nHashType, scriptSigRet));
     case TX_FALCON:
         {
-            CFalconKeyID id(uint256(vSolutions[0]));
+            CFalconKeyID id = CFalconKeyID(uint256(vSolutions[0]));
             CFalconKey key;
             if (!keystore.GetFalconKey(id, key))
                 return false;
@@ -1793,7 +1793,7 @@ isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey)
         break;
     case TX_FALCON:
     {
-        CFalconKeyID id(uint256(vSolutions[0]));
+        CFalconKeyID id = CFalconKeyID(uint256(vSolutions[0]));
         if (keystore.HaveFalconKey(id))
             return MINE_SPENDABLE;
         break;
@@ -2136,6 +2136,7 @@ static CScript CombineSignatures(const CScript& scriptPubKey, const CTransaction
     case TX_PUBKEY:
     case TX_PUBKEY_DROP:
     case TX_PUBKEYHASH:
+    case TX_FALCON:
         // Signatures are bigger than placeholders or empty scripts:
         if (sigs1.empty() || sigs1[0].empty())
             return PushAll(sigs2);
