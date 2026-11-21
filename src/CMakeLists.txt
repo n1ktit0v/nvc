@@ -104,6 +104,7 @@ set(generic_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/kernel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/kernel_worker.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/kernelrecord.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/falconkey.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/key.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/keystore.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp

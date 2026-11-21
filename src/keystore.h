@@ -6,6 +6,7 @@
 #define BITCOIN_KEYSTORE_H
 
 #include "crypter.h"
+#include "falconkey.h"
 #include "sync.h"
 
 #include <boost/signals2/signal.hpp>
@@ -24,10 +25,11 @@ public:
   * CNoDestination: no destination set
   * CKeyID: TX_PUBKEYHASH destination
   * CScriptID: TX_SCRIPTHASH destination
+  * CFalconKeyID: TX_FALCON destination
   *
   * A CTxDestination is the internal data type encoded in a CBitcoinAddress.
   */
-using CTxDestination = std::variant<CNoDestination, CKeyID, CScriptID>;
+using CTxDestination = std::variant<CNoDestination, CKeyID, CScriptID, CFalconKeyID>;
 
 /** A virtual base class for key stores */
 class CKeyStore
@@ -50,6 +52,12 @@ public:
     virtual bool GetKey(const CKeyID &address, CKey& keyOut) const =0;
     virtual void GetKeys(std::set<CKeyID> &setAddress) const =0;
     virtual bool GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const;
+
+    // Add a falcon (post-quantum) key to the store.
+    virtual bool AddFalconKey(const CFalconKey& key) =0;
+    virtual bool HaveFalconKey(const CFalconKeyID &address) const =0;
+    virtual bool GetFalconKey(const CFalconKeyID &address, CFalconKey& keyOut) const =0;
+    virtual void GetFalconKeys(std::set<CFalconKeyID> &setAddress) const =0;
 
     // Support for BIP 0013 : see https://en.bitcoin.it/wiki/BIP_0013
     virtual bool AddCScript(const CScript& redeemScript) =0;
@@ -81,6 +89,7 @@ typedef std::map<CKeyID, std::pair<CSecret, bool> > KeyMap;
 typedef std::map<CScriptID, CScript > ScriptMap;
 typedef std::set<CScript> WatchOnlySet;
 typedef std::map<CMalleableKeyView, CSecret> MalleableKeyMap;
+typedef std::map<CFalconKeyID, CFalconKey> FalconKeyMap;
 
 /** Basic key store, that keeps keys in an address->secret map */
 class CBasicKeyStore : public CKeyStore
@@ -88,6 +97,7 @@ class CBasicKeyStore : public CKeyStore
 protected:
     KeyMap mapKeys;
     MalleableKeyMap mapMalleableKeys;
+    FalconKeyMap mapFalconKeys;
 
     ScriptMap mapScripts;
     WatchOnlySet setWatchOnly;
@@ -95,6 +105,38 @@ protected:
 public:
     bool AddKey(const CKey& key);
     bool AddMalleableKey(const CMalleableKeyView& keyView, const CSecret &vchSecretH);
+    bool AddFalconKey(const CFalconKey& key);
+    bool HaveFalconKey(const CFalconKeyID &address) const
+    {
+        bool result;
+        {
+            LOCK(cs_KeyStore);
+            result = (mapFalconKeys.count(address) > 0);
+        }
+        return result;
+    }
+    bool GetFalconKey(const CFalconKeyID &address, CFalconKey &keyOut) const
+    {
+        {
+            LOCK(cs_KeyStore);
+            FalconKeyMap::const_iterator mi = mapFalconKeys.find(address);
+            if (mi != mapFalconKeys.end())
+            {
+                keyOut = mi->second;
+                return true;
+            }
+        }
+        return false;
+    }
+    void GetFalconKeys(std::set<CFalconKeyID> &setAddress) const
+    {
+        setAddress.clear();
+        {
+            LOCK(cs_KeyStore);
+            for (FalconKeyMap::const_iterator mi = mapFalconKeys.begin(); mi != mapFalconKeys.end(); ++mi)
+                setAddress.insert(mi->first);
+        }
+    }
     bool GetMalleableKey(const CMalleableKeyView &keyView, CMalleableKey &mKey) const
     {
         {
@@ -275,6 +317,12 @@ public:
 
     bool AddKey(const CKey& key);
     bool AddMalleableKey(const CMalleableKeyView& keyView, const CSecret &vchSecretH);
+    bool AddFalconKey(const CFalconKey& key)
+    {
+        if (IsCrypted())
+            return false;
+        return CBasicKeyStore::AddFalconKey(key);
+    }
     bool HaveKey(const CKeyID &address) const
     {
         {

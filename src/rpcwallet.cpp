@@ -1718,7 +1718,40 @@ public:
         }
         return obj;
     }
+
+    Object operator()([[maybe_unused]] const CFalconKeyID &id) const {
+        Object obj;
+        obj.push_back(Pair("isscript", false));
+        obj.push_back(Pair("isfalcon", true));
+        return obj;
+    }
 };
+
+Value getnewfalconaddress(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+        throw std::runtime_error(
+            "getnewfalconaddress [account]\n"
+            "Returns a new post-quantum (Falcon-512) NovaCoin address for receiving payments.  "
+            "If [account] is specified (recommended), it is added to the address book "
+            "so payments received with the address will be credited to [account].");
+
+    std::string strAccount;
+    if (params.size() > 0)
+        strAccount = AccountFromValue(params[0]);
+
+    if (pwalletMain->IsCrypted())
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: falcon keys are not supported in encrypted wallets yet");
+
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    CFalconKeyID newID = pwalletMain->GenerateNewFalconKey();
+    CBitcoinAddress address(newID);
+
+    pwalletMain->SetAddressBookName(address, strAccount);
+
+    return address.ToString();
+}
 
 Value validateaddress(const Array& params, bool fHelp)
 {

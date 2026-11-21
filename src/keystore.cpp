@@ -38,6 +38,18 @@ bool CBasicKeyStore::AddMalleableKey(const CMalleableKeyView& keyView, const CSe
     return true;
 }
 
+bool CBasicKeyStore::AddFalconKey(const CFalconKey& key)
+{
+    if (!key.IsValid())
+        return error("CBasicKeyStore::AddFalconKey() : invalid falcon key");
+
+    {
+        LOCK(cs_KeyStore);
+        mapFalconKeys[key.GetID()] = key;
+    }
+    return true;
+}
+
 bool CBasicKeyStore::AddCScript(const CScript& redeemScript)
 {
     if (redeemScript.size() > MAX_SCRIPT_ELEMENT_SIZE)

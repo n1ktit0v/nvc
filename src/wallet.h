@@ -122,12 +122,15 @@ public:
     // keystore implementation
     // Generate a new key
     CPubKey GenerateNewKey();
+    CFalconKeyID GenerateNewFalconKey();
     CMalleableKeyView GenerateNewMalleableKey();
     // Adds a key to the store, and saves it to disk.
     bool AddKey(const CKey& key);
     bool AddKey(const CMalleableKey& mKey);
+    bool AddFalconKey(const CFalconKey& key);
     // Adds a key to the store, without saving it to disk (used by LoadWallet)
     bool LoadKey(const CKey& key) { return CCryptoKeyStore::AddKey(key); }
+    bool LoadFalconKey(const CFalconKey& key) { return CCryptoKeyStore::AddFalconKey(key); }
     // Load metadata (used by LoadWallet)
     bool LoadKeyMetadata(const CPubKey &pubkey, const CKeyMetadata &metadata);
     bool LoadKeyMetadata(const CMalleableKeyView &keyView, const CKeyMetadata &metadata);

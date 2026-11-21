@@ -16,6 +16,7 @@
 #define BITCOIN_BASE58_H
 
 #include "key.h"
+#include "falconkey.h"
 #include "script.h"
 
 #include <openssl/crypto.h> // for OPENSSL_cleanse()
@@ -85,6 +86,8 @@ public:
  * The data vector contains RIPEMD160(SHA256(cscript)), where cscript is the serialized redemption script.
  * Pubkey-pair-addresses have version 1 (or 6 testnet)
  * The data vector contains a serialized copy of two compressed ECDSA secp256k1 public keys.
+ * Falcon-addresses have version 54 (or 126 testnet).
+ * The data vector contains SHA256(falcon pubkey), the 32-byte commitment of TX_FALCON outputs.
  */
 class CBitcoinAddress : public CBase58Data {
 public:
@@ -93,17 +96,21 @@ public:
         PUBKEY_PAIR_ADDRESS = 1,
         PUBKEY_ADDRESS = 8,
         SCRIPT_ADDRESS = 20,
+        FALCON_ADDRESS = 54,
         PUBKEY_PAIR_ADDRESS_TEST = 6,
         PUBKEY_ADDRESS_TEST = 111,
-        SCRIPT_ADDRESS_TEST = 196
+        SCRIPT_ADDRESS_TEST = 196,
+        FALCON_ADDRESS_TEST = 126
     };
 
     bool Set(const CKeyID &id);
     bool Set(const CScriptID &id);
+    bool Set(const CFalconKeyID &id);
     bool Set(const CTxDestination &dest);
     bool Set(const CMalleablePubKey &mpk);
     bool Set(const CBitcoinAddress &dest);
     bool IsValid() const;
+    bool IsFalcon() const;
 
     CBitcoinAddress() {}
     CBitcoinAddress(const CTxDestination &dest) { Set(dest); }

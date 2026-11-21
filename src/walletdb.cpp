@@ -57,6 +57,12 @@ bool CWalletDB::WriteKey(const CPubKey &key, const CPrivKey &vchPrivKey, const C
     return true;
 }
 
+bool CWalletDB::WriteFalconKey(const CFalconKey &key)
+{
+    nWalletDBUpdated++;
+    return Write(std::make_pair(std::string("falconkey"), key.GetID()), key, false);
+}
+
 bool CWalletDB::WriteMalleableKey(const CMalleableKeyView &keyView, const CSecret &vchSecretH, const CKeyMetadata &keyMeta)
 {
     nWalletDBUpdated++;
@@ -528,6 +534,24 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
                 return false;
             }
         }
+        else if (strType == "falconkey")
+        {
+            CFalconKeyID id;
+            ssKey >> id;
+            CFalconKey key;
+            ssValue >> key;
+            if (key.GetID() != id)
+            {
+                strErr = "Error reading wallet database: CFalconKey pubkey inconsistency";
+                return false;
+            }
+            if (!pwallet->LoadFalconKey(key))
+            {
+                strErr = "Error reading wallet database: LoadFalconKey failed";
+                return false;
+            }
+            wss.nKeys++;
+        }
         else if (strType == "mkey")
         {
             unsigned int nID;
@@ -639,7 +663,7 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
 static bool IsKeyType(const std::string& strType)
 {
     return (strType== "key" || strType == "wkey" ||
-            strType == "mkey" || strType == "ckey" || strType == "malpair" || strType == "malcpair");
+            strType == "mkey" || strType == "ckey" || strType == "malpair" || strType == "malcpair" || strType == "falconkey");
 }
 
 DBErrors CWalletDB::LoadWallet(CWallet* pwallet)

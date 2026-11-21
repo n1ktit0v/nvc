@@ -90,6 +90,36 @@ CMalleableKeyView CWallet::GenerateNewMalleableKey()
     return CMalleableKeyView(mKey);
 }
 
+CFalconKeyID CWallet::GenerateNewFalconKey()
+{
+    if (IsCrypted())
+        throw std::runtime_error("CWallet::GenerateNewFalconKey() : encrypted wallets are not supported with falcon keys yet");
+
+    RandAddSeedPerfmon();
+    CFalconKey key;
+    key.MakeNewKey();
+    if (!key.IsValid())
+        throw std::runtime_error("CWallet::GenerateNewFalconKey() : falcon key generation failed");
+
+    if (!nTimeFirstKey)
+        nTimeFirstKey = GetTime();
+
+    if (!AddFalconKey(key))
+        throw std::runtime_error("CWallet::GenerateNewFalconKey() : AddFalconKey failed");
+    return key.GetID();
+}
+
+bool CWallet::AddFalconKey(const CFalconKey& key)
+{
+    if (!CCryptoKeyStore::AddFalconKey(key))
+        return false;
+    if (!fFileBacked)
+        return true;
+    if (!IsCrypted())
+        return CWalletDB(strWalletFile).WriteFalconKey(key);
+    return true;
+}
+
 bool CWallet::AddKey(const CKey& key)
 {
     CPubKey pubkey = key.GetPubKey();

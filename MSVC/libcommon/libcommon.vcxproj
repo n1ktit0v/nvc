@@ -34,6 +34,7 @@
     <ClCompile Include="..\..\src\netbase.cpp" />
     <ClCompile Include="..\..\src\addrman.cpp" />
     <ClCompile Include="..\..\src\crypter.cpp" />
+    <ClCompile Include="..\..\src\falconkey.cpp" />
     <ClCompile Include="..\..\src\key.cpp" />
     <ClCompile Include="..\..\src\db.cpp" />
     <ClCompile Include="..\..\src\irc.cpp" />
@@ -83,6 +84,8 @@
     <ClInclude Include="..\..\src\ipcollector.h" />
     <ClInclude Include="..\..\src\irc.h" />
     <ClInclude Include="..\..\src\kernel_worker.h" />
+    <ClInclude Include="..\..\src\falconkey.h" />
+    <ClInclude Include="..\..\src\falconkey.h" />
     <ClInclude Include="..\..\src\key.h" />
     <ClInclude Include="..\..\src\keystore.h" />
     <ClInclude Include="..\..\src\leveldb.h" />

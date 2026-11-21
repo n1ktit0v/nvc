@@ -59,6 +59,7 @@ public:
     bool WriteTx(uint256 hash, const CWalletTx& wtx);
     bool EraseTx(uint256 hash);
     bool WriteKey(const CPubKey& key, const CPrivKey& vchPrivKey, const CKeyMetadata &keyMeta);
+    bool WriteFalconKey(const CFalconKey& key);
     bool WriteMalleableKey(const CMalleableKeyView& keyView, const CSecret& vchSecretH, const CKeyMetadata &keyMeta);
     bool WriteCryptedMalleableKey(const CMalleableKeyView& keyView, const std::vector<unsigned char>& vchCryptedSecretH, const CKeyMetadata &keyMeta);
     bool WriteCryptedKey(const CPubKey& key, const std::vector<unsigned char>& vchCryptedSecret, const CKeyMetadata &keyMeta);
