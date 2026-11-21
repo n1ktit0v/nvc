@@ -264,6 +264,7 @@ public:
 
 typedef std::map<CKeyID, std::pair<CPubKey, std::vector<unsigned char> > > CryptedKeyMap;
 typedef std::map<CMalleableKeyView, std::vector<unsigned char> > CryptedMalleableKeyMap;
+typedef std::map<CFalconKeyID, std::pair<std::vector<unsigned char>, std::vector<unsigned char> > > CryptedFalconKeyMap;
 
 /** Keystore which keeps the private keys encrypted.
  * It derives from the basic key store, which is used if no encryption is active.
@@ -273,6 +274,7 @@ class CCryptoKeyStore : public CBasicKeyStore
 private:
     CryptedKeyMap mapCryptedKeys;
     CryptedMalleableKeyMap mapCryptedMalleableKeys;
+    CryptedFalconKeyMap mapCryptedFalconKeys;
 
     CKeyingMaterial vMasterKey;
 
@@ -313,15 +315,14 @@ public:
 
     virtual bool AddCryptedKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
     virtual bool AddCryptedMalleableKey(const CMalleableKeyView& keyView, const std::vector<unsigned char>  &vchCryptedSecretH);
+    virtual bool AddCryptedFalconKey(const CFalconKeyID &id, const std::vector<unsigned char> &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
 
     bool AddKey(const CKey& key);
     bool AddMalleableKey(const CMalleableKeyView& keyView, const CSecret &vchSecretH);
-    bool AddFalconKey(const CFalconKey& key)
-    {
-        if (IsCrypted())
-            return false;
-        return CBasicKeyStore::AddFalconKey(key);
-    }
+    bool AddFalconKey(const CFalconKey& key);
+    bool HaveFalconKey(const CFalconKeyID &address) const;
+    bool GetFalconKey(const CFalconKeyID &address, CFalconKey &keyOut) const;
+    void GetFalconKeys(std::set<CFalconKeyID> &setAddress) const;
     bool HaveKey(const CKeyID &address) const
     {
         {

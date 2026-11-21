@@ -92,9 +92,6 @@ CMalleableKeyView CWallet::GenerateNewMalleableKey()
 
 CScriptID CWallet::GenerateNewFalconKey(CScript& redeemScriptRet)
 {
-    if (IsCrypted())
-        throw std::runtime_error("CWallet::GenerateNewFalconKey() : encrypted wallets are not supported with falcon keys yet");
-
     RandAddSeedPerfmon();
     CFalconKey key;
     key.MakeNewKey();
@@ -198,6 +195,25 @@ bool CWallet::AddCryptedKey(const CPubKey &vchPubKey, const std::vector<unsigned
             return pwalletdbEncryption->WriteCryptedKey(vchPubKey, vchCryptedSecret, mapKeyMetadata[addr]);
         else
             return CWalletDB(strWalletFile).WriteCryptedKey(vchPubKey, vchCryptedSecret, mapKeyMetadata[addr]);
+    }
+    return false;
+}
+
+bool CWallet::LoadCryptedFalconKey(const CFalconKeyID &id, const std::vector<unsigned char> &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret) { SetMinVersion(FEATURE_WALLETCRYPT); return CCryptoKeyStore::AddCryptedFalconKey(id, vchPubKey, vchCryptedSecret); }
+
+bool CWallet::AddCryptedFalconKey(const CFalconKeyID &id, const std::vector<unsigned char> &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret)
+{
+    if (!CCryptoKeyStore::AddCryptedFalconKey(id, vchPubKey, vchCryptedSecret))
+        return false;
+
+    if (!fFileBacked)
+        return true;
+    {
+        LOCK(cs_wallet);
+        if (pwalletdbEncryption)
+            return pwalletdbEncryption->WriteCryptedFalconKey(id, vchPubKey, vchCryptedSecret);
+        else
+            return CWalletDB(strWalletFile).WriteCryptedFalconKey(id, vchPubKey, vchCryptedSecret);
     }
     return false;
 }
@@ -550,6 +566,14 @@ bool CWallet::DecryptWallet(const SecureString& strWalletPassphrase)
                 pwalletdbDecryption->EraseCryptedMalleableKey(keyView);
                 pwalletdbDecryption->WriteMalleableKey(keyView, vchSecretH, mapKeyMetadata[CBitcoinAddress(keyView.GetMalleablePubKey())]);
                 mi2++;
+            }
+
+            FalconKeyMap::const_iterator mi3 = mapFalconKeys.begin();
+            while (mi3 != mapFalconKeys.end())
+            {
+                pwalletdbDecryption->EraseCryptedFalconKey(mi3->first);
+                pwalletdbDecryption->WriteFalconKey(mi3->second);
+                mi3++;
             }
 
             // Erase master keys

@@ -124,6 +124,22 @@ bool CWalletDB::EraseCryptedKey(const CPubKey &key)
     return Erase(std::make_pair(std::string("ckey"), key));
 }
 
+bool CWalletDB::WriteCryptedFalconKey(const CFalconKeyID &id, const std::vector<unsigned char> &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret)
+{
+    nWalletDBUpdated++;
+
+    std::pair<std::vector<unsigned char>, std::vector<unsigned char> > value = make_pair(vchPubKey, vchCryptedSecret);
+    if (!Write(std::make_pair(std::string("cfalconkey"), id), value, false))
+        return false;
+    Erase(std::make_pair(std::string("falconkey"), id));
+    return true;
+}
+
+bool CWalletDB::EraseCryptedFalconKey(const CFalconKeyID &id)
+{
+    return Erase(std::make_pair(std::string("cfalconkey"), id));
+}
+
 bool CWalletDB::EraseCryptedMalleableKey(const CMalleableKeyView &keyView)
 {
     return Erase(std::make_pair(std::string("malcpair"), keyView.ToString()));
@@ -552,6 +568,19 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             }
             wss.nKeys++;
         }
+        else if (strType == "cfalconkey")
+        {
+            CFalconKeyID id;
+            ssKey >> id;
+            std::pair<std::vector<unsigned char>, std::vector<unsigned char> > value;
+            ssValue >> value;
+            if (!pwallet->LoadCryptedFalconKey(id, value.first, value.second))
+            {
+                strErr = "Error reading wallet database: LoadCryptedFalconKey failed";
+                return false;
+            }
+            wss.nKeys++;
+        }
         else if (strType == "mkey")
         {
             unsigned int nID;
@@ -663,7 +692,7 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
 static bool IsKeyType(const std::string& strType)
 {
     return (strType== "key" || strType == "wkey" ||
-            strType == "mkey" || strType == "ckey" || strType == "malpair" || strType == "malcpair" || strType == "falconkey");
+            strType == "mkey" || strType == "ckey" || strType == "malpair" || strType == "malcpair" || strType == "falconkey" || strType == "cfalconkey");
 }
 
 DBErrors CWalletDB::LoadWallet(CWallet* pwallet)

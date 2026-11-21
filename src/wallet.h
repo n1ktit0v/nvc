@@ -144,8 +144,10 @@ public:
     // Adds an encrypted key to the store, and saves it to disk.
     bool AddCryptedKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
     bool AddCryptedMalleableKey(const CMalleableKeyView& keyView, const std::vector<unsigned char> &vchCryptedSecretH);
+    bool AddCryptedFalconKey(const CFalconKeyID &id, const std::vector<unsigned char> &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
     // Adds an encrypted key to the store, without saving it to disk (used by LoadWallet)
     bool LoadCryptedKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
+    bool LoadCryptedFalconKey(const CFalconKeyID &id, const std::vector<unsigned char> &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
     bool AddCScript(const CScript& redeemScript);
     bool LoadCScript(const CScript& redeemScript);
 

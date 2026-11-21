@@ -63,9 +63,11 @@ public:
     bool WriteMalleableKey(const CMalleableKeyView& keyView, const CSecret& vchSecretH, const CKeyMetadata &keyMeta);
     bool WriteCryptedMalleableKey(const CMalleableKeyView& keyView, const std::vector<unsigned char>& vchCryptedSecretH, const CKeyMetadata &keyMeta);
     bool WriteCryptedKey(const CPubKey& key, const std::vector<unsigned char>& vchCryptedSecret, const CKeyMetadata &keyMeta);
+    bool WriteCryptedFalconKey(const CFalconKeyID& id, const std::vector<unsigned char>& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret);
     bool WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey);
     bool EraseMasterKey(unsigned int nID);
     bool EraseCryptedKey(const CPubKey& key);
+    bool EraseCryptedFalconKey(const CFalconKeyID& id);
     bool EraseCryptedMalleableKey(const CMalleableKeyView& keyView);
     bool WriteCScript(const uint160& hash, const CScript& redeemScript);
     bool WriteWatchOnly(const CScript &dest);

@@ -1736,8 +1736,8 @@ Value getnewfalconaddress(const Array& params, bool fHelp)
     if (params.size() > 0)
         strAccount = AccountFromValue(params[0]);
 
-    if (pwalletMain->IsCrypted())
-        throw JSONRPCError(RPC_WALLET_ERROR, "Error: falcon keys are not supported in encrypted wallets yet");
+    if (pwalletMain->IsCrypted() && pwalletMain->IsLocked())
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: wallet locked; use walletpassphrase first");
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
