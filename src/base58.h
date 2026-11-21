@@ -86,7 +86,8 @@ public:
  * The data vector contains RIPEMD160(SHA256(cscript)), where cscript is the serialized redemption script.
  * Pubkey-pair-addresses have version 1 (or 6 testnet)
  * The data vector contains a serialized copy of two compressed ECDSA secp256k1 public keys.
- * Falcon-addresses have version 54 (or 126 testnet).
+ * Falcon-addresses have version 250 (or 50 testnet); the payload size (version+32+checksum = 37 bytes)
+ * was chosen so that the leading base58 character is always '9' (mainnet) / '2' (testnet).
  * The data vector contains SHA256(falcon pubkey), the 32-byte commitment of TX_FALCON outputs.
  */
 class CBitcoinAddress : public CBase58Data {
@@ -96,11 +97,11 @@ public:
         PUBKEY_PAIR_ADDRESS = 1,
         PUBKEY_ADDRESS = 8,
         SCRIPT_ADDRESS = 20,
-        FALCON_ADDRESS = 54,
+        FALCON_ADDRESS = 250,
         PUBKEY_PAIR_ADDRESS_TEST = 6,
         PUBKEY_ADDRESS_TEST = 111,
         SCRIPT_ADDRESS_TEST = 196,
-        FALCON_ADDRESS_TEST = 126
+        FALCON_ADDRESS_TEST = 50
     };
 
     bool Set(const CKeyID &id);
