@@ -281,7 +281,6 @@ bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRe
 
             bool operator()(const CKeyID &id) const { return addr->Set(id); }
             bool operator()(const CScriptID &id) const { return addr->Set(id); }
-            bool operator()(const CFalconKeyID &id) const { return addr->Set(id); }
             bool operator()(const CMalleablePubKey &mpk) const { return addr->Set(mpk); }
             bool operator()([[maybe_unused]] const CNoDestination &no) const { return false; }
         };
@@ -294,12 +293,6 @@ bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRe
 
     bool CBitcoinAddress::Set(const CScriptID &id) {
         SetData(fTestNet ? SCRIPT_ADDRESS_TEST : SCRIPT_ADDRESS, &id, 20);
-        return true;
-    }
-
-    bool CBitcoinAddress::Set(const CFalconKeyID &id) {
-        std::vector<unsigned char> vchData(id.begin(), id.end());
-        SetData(fTestNet ? FALCON_ADDRESS_TEST : FALCON_ADDRESS, &vchData[0], 32);
         return true;
     }
 
@@ -341,10 +334,6 @@ bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRe
                 nExpectedSize = 20; // Hash of CScript
                 fExpectTestNet = false;
                 break;
-            case FALCON_ADDRESS:
-                nExpectedSize = 32; // SHA256 of falcon public key
-                fExpectTestNet = false;
-                break;
 
             case PUBKEY_PAIR_ADDRESS_TEST:
                 nExpectedSize = 68;
@@ -357,10 +346,6 @@ bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRe
                 break;
             case SCRIPT_ADDRESS_TEST:
                 nExpectedSize = 20;
-                fExpectTestNet = true;
-                break;
-            case FALCON_ADDRESS_TEST:
-                nExpectedSize = 32;
                 fExpectTestNet = true;
                 break;
 
@@ -398,12 +383,6 @@ bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRe
             uint160 id;
             memcpy(&id, &vchData[0], 20);
             return CScriptID(id);
-        }
-        case FALCON_ADDRESS:
-        case FALCON_ADDRESS_TEST: {
-            uint256 id;
-            memcpy(&id, &vchData[0], 32);
-            return CFalconKeyID(id);
         }
         }
         return CNoDestination();
@@ -456,18 +435,6 @@ bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRe
         }
     }
     
-    bool CBitcoinAddress::IsFalcon() const {
-        if (!IsValid())
-            return false;
-        switch (nVersion) {
-        case FALCON_ADDRESS:
-        case FALCON_ADDRESS_TEST: {
-            return true;
-        }
-        default: return false;
-        }
-    }
-
     bool CBitcoinAddress::IsPair() const {
         if (!IsValid())
             return false;

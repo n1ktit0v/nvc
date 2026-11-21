@@ -60,8 +60,19 @@ public:
     //! Verify a falcon signature over a 32-byte message
     static bool Verify(const uint256& hash, const std::vector<unsigned char>& vchSig, const std::vector<unsigned char>& vchPubKey);
 
-    //! Split a buffer into two chunks, first chunk of size nFirst (never exceeds MAX_SCRIPT_ELEMENT_SIZE boundaries)
+    //! Maximum size of one script element pushed on the stack (matches MAX_SCRIPT_ELEMENT_SIZE in script.h)
+    static constexpr size_t CHUNK_SIZE = 520;
+
+    //! Split a buffer into two script-pushable chunks of at most CHUNK_SIZE bytes each.
+    //! The second chunk is empty when the data fits into the first one.
+    //! This is the chunking used by the phoenix falcon scriptSig layout:
+    //! the chunks are pushed in reverse order so that concatenation of
+    //! stacktop(-2) || stacktop(-3) restores the original buffer.
     static void SplitForScript(const std::vector<unsigned char>& vch, std::vector<unsigned char>& vch1, std::vector<unsigned char>& vch2);
+
+    //! Script bytes of a phoenix falcon redeem script:
+    //!   push salt OP_DROP push SHA256(pubkey) OP_FALCONVERIFY 5x OP_DROP OP_TRUE
+    static void BuildRedeemScript(const std::vector<unsigned char>& vchSalt, const CFalconKeyID& hashPubKey, std::vector<unsigned char>& vchScriptOut);
 
     IMPLEMENT_SERIALIZE
     (

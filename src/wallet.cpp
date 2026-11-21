@@ -90,7 +90,7 @@ CMalleableKeyView CWallet::GenerateNewMalleableKey()
     return CMalleableKeyView(mKey);
 }
 
-CFalconKeyID CWallet::GenerateNewFalconKey()
+CScriptID CWallet::GenerateNewFalconKey(CScript& redeemScriptRet)
 {
     if (IsCrypted())
         throw std::runtime_error("CWallet::GenerateNewFalconKey() : encrypted wallets are not supported with falcon keys yet");
@@ -106,7 +106,18 @@ CFalconKeyID CWallet::GenerateNewFalconKey()
 
     if (!AddFalconKey(key))
         throw std::runtime_error("CWallet::GenerateNewFalconKey() : AddFalconKey failed");
-    return key.GetID();
+
+    // 16 random salt bytes, same as the phoenix wallet (RANDOM_SALT_SIZE)
+    std::vector<unsigned char> vchSalt(16);
+    GetRandBytes(&vchSalt[0], (int)vchSalt.size());
+
+    std::vector<unsigned char> vchScript;
+    CFalconKey::BuildRedeemScript(vchSalt, key.GetID(), vchScript);
+    redeemScriptRet = CScript(vchScript.begin(), vchScript.end());
+
+    if (!AddCScript(redeemScriptRet))
+        throw std::runtime_error("CWallet::GenerateNewFalconKey() : AddCScript failed");
+    return redeemScriptRet.GetID();
 }
 
 bool CWallet::AddFalconKey(const CFalconKey& key)

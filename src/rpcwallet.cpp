@@ -1719,12 +1719,6 @@ public:
         return obj;
     }
 
-    Object operator()([[maybe_unused]] const CFalconKeyID &id) const {
-        Object obj;
-        obj.push_back(Pair("isscript", false));
-        obj.push_back(Pair("isfalcon", true));
-        return obj;
-    }
 };
 
 Value getnewfalconaddress(const Array& params, bool fHelp)
@@ -1733,6 +1727,8 @@ Value getnewfalconaddress(const Array& params, bool fHelp)
         throw std::runtime_error(
             "getnewfalconaddress [account]\n"
             "Returns a new post-quantum (Falcon-512) NovaCoin address for receiving payments.  "
+            "The address is a P2SH address (same as in the phoenix wallet) whose redemption "
+            "script commits to a falcon public key.  "
             "If [account] is specified (recommended), it is added to the address book "
             "so payments received with the address will be credited to [account].");
 
@@ -1745,8 +1741,9 @@ Value getnewfalconaddress(const Array& params, bool fHelp)
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
-    CFalconKeyID newID = pwalletMain->GenerateNewFalconKey();
-    CBitcoinAddress address(newID);
+    CScript redeemScript;
+    CScriptID scriptID = pwalletMain->GenerateNewFalconKey(redeemScript);
+    CBitcoinAddress address(scriptID);
 
     pwalletMain->SetAddressBookName(address, strAccount);
 

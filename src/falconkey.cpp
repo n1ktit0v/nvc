@@ -4,6 +4,7 @@
 
 #include "falconkey.h"
 
+#include <algorithm>
 #include <openssl/sha.h>
 
 void CFalconKey::MakeNewKey()
@@ -84,9 +85,58 @@ bool CFalconKey::Verify(const uint256& hash, const std::vector<unsigned char>& v
     return (st == OQS_SUCCESS);
 }
 
+namespace {
+
+// Same as the phoenix push_data(): minimal-script data push.
+void PushData(std::vector<unsigned char>& vchOut, const std::vector<unsigned char>& vchData)
+{
+    size_t n = vchData.size();
+    if (n <= 75)
+    {
+        vchOut.push_back((unsigned char)n);
+    }
+    else if (n <= 0xFF)
+    {
+        vchOut.push_back(0x4c);
+        vchOut.push_back((unsigned char)n);
+    }
+    else if (n <= 0xFFFF)
+    {
+        vchOut.push_back(0x4d);
+        vchOut.push_back((unsigned char)(n & 0xFF));
+        vchOut.push_back((unsigned char)((n >> 8) & 0xFF));
+    }
+    else
+    {
+        vchOut.push_back(0x4e);
+        vchOut.push_back((unsigned char)(n & 0xFF));
+        vchOut.push_back((unsigned char)((n >> 8) & 0xFF));
+        vchOut.push_back((unsigned char)((n >> 16) & 0xFF));
+        vchOut.push_back((unsigned char)((n >> 24) & 0xFF));
+    }
+    vchOut.insert(vchOut.end(), vchData.begin(), vchData.end());
+}
+
+} // anonymous namespace
+
 void CFalconKey::SplitForScript(const std::vector<unsigned char>& vch, std::vector<unsigned char>& vch1, std::vector<unsigned char>& vch2)
 {
-    size_t nHalf = vch.size() / 2;
-    vch1.assign(vch.begin(), vch.begin() + nHalf);
-    vch2.assign(vch.begin() + nHalf, vch.end());
+    vch1.assign(vch.begin(),
+                vch.begin() + std::min(vch.size(), CHUNK_SIZE));
+    vch2.assign(vch.begin() + vch1.size(), vch.end());
+}
+
+void CFalconKey::BuildRedeemScript(const std::vector<unsigned char>& vchSalt, const CFalconKeyID& hashPubKey, std::vector<unsigned char>& vchScriptOut)
+{
+    vchScriptOut.clear();
+
+    std::vector<unsigned char> vchHash(hashPubKey.begin(), hashPubKey.end());
+
+    PushData(vchScriptOut, vchSalt);
+    vchScriptOut.push_back(0x75); // OP_DROP
+    PushData(vchScriptOut, vchHash);
+    vchScriptOut.push_back(0xb9); // OP_FALCONVERIFY
+    for (unsigned int i = 0; i < 5; i++)
+        vchScriptOut.push_back(0x75); // OP_DROP
+    vchScriptOut.push_back(0x51); // OP_TRUE
 }

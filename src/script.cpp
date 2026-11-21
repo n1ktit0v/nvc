@@ -1395,6 +1395,37 @@ bool CheckSig(std::vector<unsigned char> vchSig, const std::vector<unsigned char
 }
 
 
+// Recognize the phoenix falcon redeem script:
+//   push salt OP_DROP push 32 [32 byte SHA256(falcon pubkey)] OP_FALCONVERIFY 5x OP_DROP OP_TRUE
+// On match, typeRet is TX_FALCON and vSolutionsRet contains the 32-byte pubkey hash.
+static bool IsFalconRedeemScript(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::vector<unsigned char> >& vSolutionsRet)
+{
+    CScript::const_iterator pc = scriptPubKey.begin();
+    opcodetype opcode;
+    std::vector<unsigned char> vchSalt, vchHash;
+
+    if (!scriptPubKey.GetOp(pc, opcode, vchSalt) || opcode > OP_PUSHDATA4 ||
+            vchSalt.empty() || vchSalt.size() > MAX_SCRIPT_ELEMENT_SIZE)
+        return false;
+    if (!scriptPubKey.GetOp(pc, opcode, vchHash) || opcode != OP_DROP)
+        return false;
+    if (!scriptPubKey.GetOp(pc, opcode, vchHash) || opcode > OP_PUSHDATA4 || vchHash.size() != 32)
+        return false;
+    if (!scriptPubKey.GetOp(pc, opcode) || opcode != OP_FALCONVERIFY)
+        return false;
+    for (unsigned int i = 0; i < 5; i++)
+        if (!scriptPubKey.GetOp(pc, opcode) || opcode != OP_DROP)
+            return false;
+    if (!scriptPubKey.GetOp(pc, opcode) || opcode != OP_TRUE)
+        return false;
+    if (pc != scriptPubKey.end())
+        return false;
+
+    typeRet = TX_FALCON;
+    vSolutionsRet.push_back(vchHash);
+    return true;
+}
+
 //
 // Return public keys or hashes from scriptPubKey, for 'standard' transaction types.
 //
@@ -1432,14 +1463,10 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
         return true;
     }
 
-    // Shortcut for pay-to-falcon: 32 [32 byte SHA256(falcon pubkey)] OP_FALCONVERIFY
-    if (scriptPubKey.size() == 34 && scriptPubKey[0] == 0x20 && scriptPubKey[33] == OP_FALCONVERIFY)
-    {
-        typeRet = TX_FALCON;
-        std::vector<unsigned char> hashBytes(scriptPubKey.begin()+1, scriptPubKey.begin()+33);
-        vSolutionsRet.push_back(hashBytes);
+    // Phoenix falcon redeem script:
+    //   push salt OP_DROP push 32 [32 byte SHA256(falcon pubkey)] OP_FALCONVERIFY 5x OP_DROP OP_TRUE
+    if (IsFalconRedeemScript(scriptPubKey, typeRet, vSolutionsRet))
         return true;
-    }
 
     // Provably prunable, data-carrying output
     //
@@ -1659,13 +1686,17 @@ bool Solver(const CKeyStore& keystore, const CScript& scriptPubKey, const uint25
             if (!key.Sign(hash, vchSig))
                 return false;
 
-            // stack layout expected by OP_FALCONVERIFY (bottom to top):
-            // sig chunk 1, sig chunk 2, pubkey chunk 1, pubkey chunk 2, pubkey hash
+            // phoenix scriptSig layout: the signature and pubkey 520-byte
+            // chunks are pushed in reverse order so that concatenation of
+            // stacktop(-1) and stacktop(-2) (etc.) restores them in forward
+            // order. The redeem script is appended by SignSignature and the
+            // pubkey-hash push of it lands on top of the stack where
+            // OP_FALCONVERIFY expects it.
             const std::vector<unsigned char>& vchPubKey = key.GetPubKey();
             std::vector<unsigned char> vchSig1, vchSig2, vchKey1, vchKey2;
             CFalconKey::SplitForScript(vchSig, vchSig1, vchSig2);
             CFalconKey::SplitForScript(vchPubKey, vchKey1, vchKey2);
-            scriptSigRet << vchSig1 << vchSig2 << vchKey1 << vchKey2 << vSolutions[0];
+            scriptSigRet << vchSig2 << vchSig1 << vchKey2 << vchKey1;
             return true;
         }
     }
@@ -1850,11 +1881,6 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         addressRet = CScriptID(uint160(vSolutions[0]));
         return true;
     }
-    else if (whichType == TX_FALCON)
-    {
-        addressRet = CFalconKeyID(uint256(vSolutions[0]));
-        return true;
-    }
     // Multisig txns have more than one address...
     return false;
 }
@@ -1918,8 +1944,6 @@ public:
         if (keystore.HaveKey(keyId))
             vKeys.push_back(keyId);
     }
-
-    void operator()([[maybe_unused]] const CFalconKeyID &id) {}
 
     void operator()(const CScriptID &scriptId) {
         CScript script;
@@ -2291,12 +2315,6 @@ public:
         return true;
     }
 
-    bool operator()(const CFalconKeyID &id) const {
-        script->clear();
-        std::vector<unsigned char> vch(id.begin(), id.end());
-        *script << vch << OP_FALCONVERIFY;
-        return true;
-    }
 };
 
 void CScript::SetDestination(const CTxDestination& dest)
@@ -2311,8 +2329,6 @@ void CScript::SetAddress(const CBitcoinAddress& dest)
         *this << OP_HASH160 << dest.GetData() << OP_EQUAL;
     else if (dest.IsPubKey())
         *this << OP_DUP << OP_HASH160 << dest.GetData() << OP_EQUALVERIFY << OP_CHECKSIG;
-    else if (dest.IsFalcon())
-        *this << dest.GetData() << OP_FALCONVERIFY;
     else if (dest.IsPair()) {
         // Pubkey pair address, going to generate
         //   new one-time public key.

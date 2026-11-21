@@ -122,7 +122,7 @@ public:
     // keystore implementation
     // Generate a new key
     CPubKey GenerateNewKey();
-    CFalconKeyID GenerateNewFalconKey();
+    CScriptID GenerateNewFalconKey(CScript& redeemScriptRet);
     CMalleableKeyView GenerateNewMalleableKey();
     // Adds a key to the store, and saves it to disk.
     bool AddKey(const CKey& key);

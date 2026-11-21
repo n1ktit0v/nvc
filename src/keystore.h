@@ -24,12 +24,11 @@ public:
 /** A txout script template with a specific destination. It is either:
   * CNoDestination: no destination set
   * CKeyID: TX_PUBKEYHASH destination
-  * CScriptID: TX_SCRIPTHASH destination
-  * CFalconKeyID: TX_FALCON destination
+  * CScriptID: TX_SCRIPTHASH destination (falcon addresses are P2SH addresses)
   *
   * A CTxDestination is the internal data type encoded in a CBitcoinAddress.
   */
-using CTxDestination = std::variant<CNoDestination, CKeyID, CScriptID, CFalconKeyID>;
+using CTxDestination = std::variant<CNoDestination, CKeyID, CScriptID>;
 
 /** A virtual base class for key stores */
 class CKeyStore
