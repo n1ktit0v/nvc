@@ -9,6 +9,7 @@
 #include "guiutil.h"
 #include "qrcodedialog.h"
 
+#include <QInputDialog>
 #include <QSortFilterProxyModel>
 #include <QClipboard>
 #include <QMessageBox>
@@ -27,6 +28,7 @@ AddressBookPage::AddressBookPage(Mode mode, Tabs tab, QWidget *parent) :
 
 #ifdef Q_OS_MAC // Icons on push buttons are very uncommon on Mac
     ui->newAddressButton->setIcon(QIcon());
+    ui->newFalconAddressButton->setIcon(QIcon());
     ui->copyToClipboard->setIcon(QIcon());
     ui->deleteButton->setIcon(QIcon());
 #endif
@@ -49,6 +51,7 @@ AddressBookPage::AddressBookPage(Mode mode, Tabs tab, QWidget *parent) :
         ui->deleteButton->setVisible(true);
         ui->signMessage->setVisible(false);
         ui->verifyMessage->setVisible(true);
+        ui->newFalconAddressButton->setVisible(false);
         break;
     case ReceivingTab:
         ui->deleteButton->setVisible(false);
@@ -222,6 +225,31 @@ void AddressBookPage::on_newAddressButton_clicked()
     {
         newAddressToSelect = dlg.getAddress();
     }
+}
+
+void AddressBookPage::on_newFalconAddressButton_clicked()
+{
+    if(!model)
+        return;
+
+    bool fOK;
+    QString label = QInputDialog::getText(this, tr("New falcon (post-quantum) address"),
+                                          tr("Label to associate with the new falcon address"),
+                                          QLineEdit::Normal, "", &fOK);
+    if(!fOK)
+        return;
+
+    QString strAddress = model->addFalconRow(label);
+    if(!strAddress.isEmpty())
+        newAddressToSelect = strAddress;
+    else if(model->getEditStatus() == AddressTableModel::WALLET_UNLOCK_FAILURE)
+        QMessageBox::critical(this, windowTitle(),
+            tr("Could not unlock wallet."),
+            QMessageBox::Ok, QMessageBox::Ok);
+    else
+        QMessageBox::critical(this, windowTitle(),
+            tr("New falcon key generation failed."),
+            QMessageBox::Ok, QMessageBox::Ok);
 }
 
 void AddressBookPage::on_deleteButton_clicked()
