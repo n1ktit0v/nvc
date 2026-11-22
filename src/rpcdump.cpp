@@ -117,7 +117,12 @@ Value importfalconkey(const Array& params, bool fHelp)
 
     CBitcoinFalconKey falconSecret;
     if (!falconSecret.SetString(strSecret))
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid falcon key encoding");
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+            strprintf("Invalid falcon key encoding (decoded version byte %d, this wallet expects %d; "
+                      "version 0 means invalid base58 or broken checksum - check the key was copied in full, "
+                      "without spaces or line breaks)",
+                      falconSecret.GetVersion(),
+                      fTestNet ? 250 : 128 + CBitcoinAddress::SCRIPT_ADDRESS));
 
     CFalconKey key;
     if (!falconSecret.GetKey(key) || !key.IsValid())

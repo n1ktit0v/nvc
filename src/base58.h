@@ -144,6 +144,7 @@ public:
     void SetKey(const CFalconKey& key);
     bool GetKey(CFalconKey& keyOut) const;
     bool IsValid() const;
+    unsigned char GetVersion() const { return nVersion; }
     bool SetString(const char* pszSecret);
     bool SetString(const std::string& strSecret);
 
