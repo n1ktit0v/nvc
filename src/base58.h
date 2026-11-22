@@ -134,4 +134,21 @@ public:
     CBitcoinSecret() {}
 };
 
+/** A base58-encoded falcon-512 key pair.
+ * Payload: falcon public key (897 bytes) followed by the private key (1281 bytes).
+ * The public key is included because it cannot be derived from the falcon private
+ * key and is needed to reconstruct the key id (SHA256 of the public key).
+ */
+class CBitcoinFalconKey : public CBase58Data {
+public:
+    void SetKey(const CFalconKey& key);
+    bool GetKey(CFalconKey& keyOut) const;
+    bool IsValid() const;
+    bool SetString(const char* pszSecret);
+    bool SetString(const std::string& strSecret);
+
+    CBitcoinFalconKey() {}
+    CBitcoinFalconKey(const CFalconKey& key) { SetKey(key); }
+};
+
 #endif

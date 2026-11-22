@@ -496,3 +496,49 @@ bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRe
     {
         SetSecret(vchSecret, fCompressed);
     }
+
+    void CBitcoinFalconKey::SetKey(const CFalconKey& key)
+    {
+        assert(key.IsValid());
+        std::vector<unsigned char> vchData;
+        vchData.reserve(key.GetPubKey().size() + key.GetPrivKey().size());
+        vchData.insert(vchData.end(), key.GetPubKey().begin(), key.GetPubKey().end());
+        vchData.insert(vchData.end(), key.GetPrivKey().begin(), key.GetPrivKey().end());
+        SetData(fTestNet ? 250 : 128 + CBitcoinAddress::SCRIPT_ADDRESS, vchData.empty() ? NULL : &vchData[0], vchData.size());
+    }
+
+    bool CBitcoinFalconKey::GetKey(CFalconKey& keyOut) const
+    {
+        if (vchData.size() != CFalconKey::PUBKEY_SIZE + CFalconKey::PRIVKEY_SIZE)
+            return false;
+        return keyOut.SetKeys(std::vector<unsigned char>(vchData.begin(), vchData.begin() + CFalconKey::PUBKEY_SIZE),
+                              std::vector<unsigned char>(vchData.begin() + CFalconKey::PUBKEY_SIZE, vchData.end()));
+    }
+
+    bool CBitcoinFalconKey::IsValid() const
+    {
+        bool fExpectTestNet = false;
+        switch(nVersion)
+        {
+            case (128 + CBitcoinAddress::SCRIPT_ADDRESS):
+                break;
+
+            case 250:
+                fExpectTestNet = true;
+                break;
+
+            default:
+                return false;
+        }
+        return fExpectTestNet == fTestNet && vchData.size() == CFalconKey::PUBKEY_SIZE + CFalconKey::PRIVKEY_SIZE;
+    }
+
+    bool CBitcoinFalconKey::SetString(const char* pszSecret)
+    {
+        return CBase58Data::SetString(pszSecret) && IsValid();
+    }
+
+    bool CBitcoinFalconKey::SetString(const std::string& strSecret)
+    {
+        return SetString(strSecret.c_str());
+    }

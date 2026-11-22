@@ -104,6 +104,11 @@ CScriptID CWallet::GenerateNewFalconKey(CScript& redeemScriptRet)
     if (!AddFalconKey(key))
         throw std::runtime_error("CWallet::GenerateNewFalconKey() : AddFalconKey failed");
 
+    return AddFalconKeyAddress(key, redeemScriptRet);
+}
+
+CScriptID CWallet::AddFalconKeyAddress(const CFalconKey& key, CScript& redeemScriptRet)
+{
     // 16 random salt bytes, same as the phoenix wallet (RANDOM_SALT_SIZE)
     std::vector<unsigned char> vchSalt(16);
     GetRandBytes(&vchSalt[0], (int)vchSalt.size());
@@ -113,7 +118,7 @@ CScriptID CWallet::GenerateNewFalconKey(CScript& redeemScriptRet)
     redeemScriptRet = CScript(vchScript.begin(), vchScript.end());
 
     if (!AddCScript(redeemScriptRet))
-        throw std::runtime_error("CWallet::GenerateNewFalconKey() : AddCScript failed");
+        throw std::runtime_error("CWallet::AddFalconKeyAddress() : AddCScript failed");
     return redeemScriptRet.GetID();
 }
 

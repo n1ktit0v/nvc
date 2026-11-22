@@ -123,6 +123,8 @@ public:
     // Generate a new key
     CPubKey GenerateNewKey();
     CScriptID GenerateNewFalconKey(CScript& redeemScriptRet);
+    // Creates a fresh phoenix-style redeem script (and P2SH address) for an existing falcon key
+    CScriptID AddFalconKeyAddress(const CFalconKey& key, CScript& redeemScriptRet);
     CMalleableKeyView GenerateNewMalleableKey();
     // Adds a key to the store, and saves it to disk.
     bool AddKey(const CKey& key);
