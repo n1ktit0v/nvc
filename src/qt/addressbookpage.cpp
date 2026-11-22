@@ -10,6 +10,7 @@
 #include "qrcodedialog.h"
 
 #include <QInputDialog>
+#include <QLineEdit>
 #include <QSortFilterProxyModel>
 #include <QClipboard>
 #include <QMessageBox>

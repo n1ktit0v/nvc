@@ -77,7 +77,7 @@
         <string>Create a new post-quantum (Falcon-512) address</string>
        </property>
        <property name="text">
-        <string>New Falcon &Address</string>
+        <string>New Falcon &amp;Address</string>
        </property>
        <property name="icon">
         <iconset resource="../bitcoin.qrc">
