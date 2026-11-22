@@ -234,8 +234,8 @@ void AddressBookPage::on_newFalconAddressButton_clicked()
         return;
 
     bool fOK;
-    QString label = QInputDialog::getText(this, tr("New falcon (post-quantum) address"),
-                                          tr("Label to associate with the new falcon address"),
+    QString label = QInputDialog::getText(this, tr("New Falcon address"),
+                                          tr("Label"),
                                           QLineEdit::Normal, "", &fOK);
     if(!fOK)
         return;
@@ -244,12 +244,12 @@ void AddressBookPage::on_newFalconAddressButton_clicked()
     if(!strAddress.isEmpty())
         newAddressToSelect = strAddress;
     else if(model->getEditStatus() == AddressTableModel::WALLET_UNLOCK_FAILURE)
-        QMessageBox::critical(this, windowTitle(),
+        QMessageBox::critical(this, tr("Error generating address"),
             tr("Could not unlock wallet."),
             QMessageBox::Ok, QMessageBox::Ok);
     else
-        QMessageBox::critical(this, windowTitle(),
-            tr("New falcon key generation failed."),
+        QMessageBox::critical(this, tr("Error generating address"),
+            tr("Failed to generate a Falcon-512 address."),
             QMessageBox::Ok, QMessageBox::Ok);
 }
 
