@@ -233,12 +233,20 @@ void AddressBookPage::on_newFalconAddressButton_clicked()
     if(!model)
         return;
 
-    bool fOK;
-    QString label = QInputDialog::getText(this, tr("New Falcon address"),
-                                          tr("Label"),
-                                          QLineEdit::Normal, "", &fOK);
-    if(!fOK)
+    QInputDialog dlg(this);
+    dlg.setWindowTitle(tr("New Falcon address"));
+    dlg.setLabelText(tr("Label"));
+    dlg.setTextEchoMode(QLineEdit::Normal);
+    // Same width as the regular new-address dialog
+    {
+        EditAddressDialog editDlg(tab == SendingTab ?
+                                  EditAddressDialog::NewSendingAddress :
+                                  EditAddressDialog::NewReceivingAddress, this);
+        dlg.resize(editDlg.width(), dlg.sizeHint().height());
+    }
+    if(dlg.exec() != QDialog::Accepted)
         return;
+    QString label = dlg.textValue();
 
     QString strAddress = model->addFalconRow(label);
     if(!strAddress.isEmpty())
