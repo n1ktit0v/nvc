@@ -141,15 +141,18 @@ public:
  */
 class CBitcoinFalconKey : public CBase58Data {
 public:
-    void SetKey(const CFalconKey& key);
+    static const size_t SALT_SIZE = 16;
+
+    void SetKey(const CFalconKey& key, const std::vector<unsigned char>& vchSalt);
     bool GetKey(CFalconKey& keyOut) const;
+    bool GetSalt(std::vector<unsigned char>& vchSaltOut) const;
     bool IsValid() const;
     unsigned char GetVersion() const { return nVersion; }
     bool SetString(const char* pszSecret);
     bool SetString(const std::string& strSecret);
 
     CBitcoinFalconKey() {}
-    CBitcoinFalconKey(const CFalconKey& key) { SetKey(key); }
+    CBitcoinFalconKey(const CFalconKey& key, const std::vector<unsigned char>& vchSalt) { SetKey(key, vchSalt); }
 };
 
 #endif

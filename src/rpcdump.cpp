@@ -98,7 +98,7 @@ Value importfalconkey(const Array& params, bool fHelp)
         throw runtime_error(
             "importfalconkey <falconkey> [label] [rescan=true]\n"
             "Adds a falcon-512 (post-quantum) key pair (as returned by dumpfalconkey) to your wallet\n"
-            "and creates a new falcon address backed by it.");
+            "and restores the falcon address it backed.");
 
     EnsureWalletIsUnlocked();
 
@@ -128,19 +128,26 @@ Value importfalconkey(const Array& params, bool fHelp)
     if (!falconSecret.GetKey(key) || !key.IsValid())
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid falcon private key");
 
+    std::vector<unsigned char> vchSalt;
+    if (!falconSecret.GetSalt(vchSalt))
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid falcon private key");
+
     {
         LOCK2(cs_main, pwalletMain->cs_wallet);
 
-        // Don't throw error in case a key is already there
-        if (pwalletMain->HaveFalconKey(key.GetID()))
-            return Value::null;
+        // Rebuild the original redeem script so the imported address matches the exported one
+        std::vector<unsigned char> vchScript;
+        CFalconKey::BuildRedeemScript(vchSalt, key.GetID(), vchScript);
+        CScript redeemScript(vchScript.begin(), vchScript.end());
+        CScriptID scriptID(redeemScript.GetID());
+        CBitcoinAddress addr(scriptID);
 
-        if (!pwalletMain->AddFalconKey(key))
+        // Don't throw error in case a key is already there
+        if (!pwalletMain->HaveFalconKey(key.GetID()) && !pwalletMain->AddFalconKey(key))
             throw JSONRPCError(RPC_WALLET_ERROR, "Error adding key to wallet");
 
-        CScript redeemScript;
-        CScriptID scriptID = pwalletMain->AddFalconKeyAddress(key, redeemScript);
-        CBitcoinAddress addr(scriptID);
+        if (!pwalletMain->HaveCScript(scriptID) && !pwalletMain->AddCScript(redeemScript))
+            throw JSONRPCError(RPC_WALLET_ERROR, "Error adding script to wallet");
 
         pwalletMain->MarkDirty();
         pwalletMain->SetAddressBookName(addr, strLabel);
@@ -316,7 +323,9 @@ Value dumpfalconkey(const Array& params, bool fHelp)
     if (fHelp || params.size() != 1)
         throw runtime_error(
             "dumpfalconkey <novacoinaddress>\n"
-            "Reveals the falcon-512 (post-quantum) key pair corresponding to <novacoinaddress>.");
+            "Reveals the falcon-512 (post-quantum) key pair corresponding to <novacoinaddress>.\n"
+            "The redeem script salt is embedded, so importfalconkey in another wallet\n"
+            "reproduces the same address.");
 
     EnsureWalletIsUnlocked();
 
@@ -349,7 +358,15 @@ Value dumpfalconkey(const Array& params, bool fHelp)
     if (!pwalletMain->GetFalconKey(keyID, key))
         throw JSONRPCError(RPC_WALLET_ERROR, "Private key for address " + strAddress + " is not known");
 
-    return CBitcoinFalconKey(key).ToString();
+    // Extract the 16-byte salt from the redeem script so the imported key
+    // reproduces the same address in another wallet
+    opcodetype opcode;
+    std::vector<unsigned char> vchOp;
+    CScript::const_iterator itScript = redeemScript.begin();
+    if (!redeemScript.GetOp(itScript, opcode, vchOp) || opcode != 16 || vchOp.size() != CBitcoinFalconKey::SALT_SIZE)
+        throw JSONRPCError(RPC_WALLET_ERROR, "Cannot extract salt from redeem script");
+
+    return CBitcoinFalconKey(key, vchOp).ToString();
 }
 
 Value dumpmalleablekey(const Array& params, bool fHelp)
