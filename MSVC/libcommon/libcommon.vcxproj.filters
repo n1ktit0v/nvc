@@ -29,6 +29,9 @@
     <ClCompile Include="..\..\src\db.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\falconkey.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\key.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -169,7 +172,7 @@
     <ClInclude Include="..\..\src\inttypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\key.h">
+    <ClInclude Include="..\..\src\falconkey.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\keystore.h">
