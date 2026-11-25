@@ -14,6 +14,9 @@
 
 #include <shared_mutex>
 
+#include <oqs/oqs.h>
+const size_t PUBKEY_SIZE = OQS_SIG_falcon_512_length_public_key;
+const size_t SIG_SIZE    = OQS_SIG_falcon_512_length_signature;
 
 bool CheckSig(std::vector<unsigned char> vchSig, const std::vector<unsigned char> &vchPubKey, const CScript &scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType, int flags);
 uint256 SignatureHash(CScript scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType);
@@ -500,7 +503,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 case OP_NOP:
                 case OP_NOP1: case OP_NOP4: case OP_NOP5:
                 case OP_NOP6: case OP_NOP7: case OP_NOP8: case OP_NOP9:
-                case OP_FALCONVERIFY:
                 break;
 
                 case OP_IF:
@@ -1043,6 +1045,66 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 }
                 break;
                 
+                case OP_FALCONVERIFY:
+                {
+                    // stack size should be of 5 pushes:
+                    // 1 for public key hash (32 bytes)
+                    // 2 for public key (897 bytes)
+                    // 2 for signature (~666 bytes)
+                    if (stack.size() != 5) return false;
+
+                    const valtype& hash_pubkey = stacktop(-1);
+                    if (hash_pubkey.size() != 32) return false;
+                    
+                    // key chunks
+                    const valtype& key_chunk1 = stacktop(-2);
+                    const valtype& key_chunk2 = stacktop(-3);
+    
+                    valtype pubkey;
+                    pubkey.reserve(PUBKEY_SIZE);
+                    pubkey.insert(pubkey.end(), key_chunk1.begin(), key_chunk1.end());
+                    pubkey.insert(pubkey.end(), key_chunk2.begin(), key_chunk2.end());
+
+                    if (pubkey.size() != PUBKEY_SIZE) return false;
+
+                    // perform pubkey integrity check
+                    uint256 hash_computed;
+                    SHA256(pubkey.data(), pubkey.size(), hash_computed.begin());
+                    if (memcmp(hash_computed.begin(), hash_pubkey.data(), 32) != 0) {
+                        error("OP_FALCONVERIFY: hash mismatch");
+                        return false;
+                    }
+
+                    // signature chunks
+                    const valtype& sig_chunk1 = stacktop(-4);
+                    const valtype& sig_chunk2 = stacktop(-5);
+
+                    valtype signature;
+                    signature.reserve(SIG_SIZE);
+                    signature.insert(signature.end(), sig_chunk1.begin(), sig_chunk1.end());
+                    signature.insert(signature.end(), sig_chunk2.begin(), sig_chunk2.end());
+
+                    if (signature.empty()) return false;
+
+                    CScript scriptCode(pbegincodehash, pend);
+                    uint256 sighash = SignatureHash(scriptCode, txTo, nIn, SIGHASH_ALL);
+
+                    // perform signature check
+                    int ret = OQS_SIG_falcon_512_verify(sighash.begin(), 32,
+                                                        signature.data(), signature.size(),
+                                                        pubkey.data());
+                    if (ret != OQS_SUCCESS) {
+                        error("OP_FALCONVERIFY: verify failed, ret=%d", ret);
+                        return false;
+                    }
+
+                    break; // success
+                    
+                    // we dont clear the stack to avoid hardfork due to stack difference between new nodes and old ones.
+                    // it still can be cleaned pushing 5x OP_DROP and OP_TRUE after this opcode but since top stack
+                    // element is pubkey hash and stack is not empty then check will succeed in any case
+                }
+
                 case OP_CHECKMULTISIG:
                 case OP_CHECKMULTISIGVERIFY:
                 {
